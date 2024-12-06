@@ -28,11 +28,11 @@ config = AutoConfig.from_pretrained(model_name_or_path)
 processor = Wav2Vec2Processor.from_pretrained(model_name_or_path)
 sampling_rate = processor.feature_extractor.sampling_rate
 model = AutoModelForAudioClassification.from_pretrained(model_name_or_path, trust_remote_code=True).to(device)
-API_TOKEN = '7260511059:AAFfHvH7AOnBuc3ByUS5LX2f2Gu2ScVZ8ig'
+API_TOKEN = '7677154133:AAGcNKX3HsD-ZfRTn99tcwvXDofZJ6aW0U0'
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 reka = Recognizer()
-# nltk.download('punkt')
+nltk.download('punkt')
 data = [("Я очень беспокоюсь о своих финансах", "беспокойство"),
     ("Мне спокойно, я все понимаю", "спокойствие"),
     ("Я не знаю, как решить эту проблему", "беспокойство"),
@@ -67,6 +67,8 @@ def predict_mood(text):
 @dp.message(Command(commands=['start']))
 async def start(message: types.Message):
     await message.answer(f'Здравствуй, {message.from_user.first_name}. Отправь мне аудио или текст, чтобы по нему я смог определить эмоцию человека')
+
+
 @dp.message()
 async def handle_audio_voice(message: types.Message):
     if message.content_type not in [types.ContentType.AUDIO, types.ContentType.VOICE, types.ContentType.TEXT]:
@@ -100,6 +102,7 @@ async def callbacks_handler(callback: CallbackQuery):
         with open(file_put, 'rb') as audio18:
             fakel = audio18.read()
             audio_buffer = io.BytesIO(fakel)
+            await callback.message.edit_text('Происходит распознование эмоции...')
             predictions: list = predict(audio_buffer.getvalue())
             pred = max(predictions, key=lambda x: x["score"])["label"]
             match pred:
@@ -113,21 +116,22 @@ async def callbacks_handler(callback: CallbackQuery):
                     emotion = 'спокоен (счастлив)'
                 case 'others':
                     emotion = 'ощущает другие эмоции'
-            await callback.message.answer(f'Человек {emotion}')
+            await callback.message.edit_text(f'Человек {emotion}')
     elif dermo[0] == '2':
         file_put = 'C:/users/user/PycharmProjects/TechnologiaEtTriumphum/.venv/audio/' + dermo[1:]
         audio = AudioSegment.from_file(file_put, 'ogg')
         audio.export(file_put, format='wav')
         with AudioFile(file_put) as source:
             audio_data = reka.record(source)
+        await callback.message.edit_text('Происходит распознование эмоции...')
         try:
             textovik = reka.recognize_google(audio_data, language='ru-RU')
         except UnknownValueError:
-            await callback.message.answer('Не удалось распознать текст, попробуйте ещё раз')
+            await callback.message.edit_text('Не удалось распознать текст, попробуйте ещё раз')
         except RequestError:
-            await callback.message.answer('Не удалось распознать текст, попробуйте ещё раз')
+            await callback.message.edit_text('Не удалось распознать текст, попробуйте ещё раз')
         moodila = predict_mood(textovik)
-        await callback.message.answer(f'Человек чувствует {moodila}')
+        await callback.message.edit_text(f'Человек чувствует {moodila}')
 
 
 async def main():
